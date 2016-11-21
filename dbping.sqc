@@ -1,0 +1,74 @@
+/* ------------------------------------------------------------ */
+/* db2-nettest            : Wolfgang Brandl                     */
+/* Software Daten Service, Vienna. 2009-03-11                   */
+/* ------------------------------------------------------------ */
+#include <sys/time.h>
+#include <sqlca.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <time.h>
+
+#include <sql.h>
+#include <db2ApiDf.h>
+
+
+EXEC SQL BEGIN DECLARE SECTION;
+char dbase [17];
+char userid[17];
+char passwd[17];
+short i;
+char str[35];
+EXEC SQL END DECLARE SECTION;
+
+EXEC SQL INCLUDE SQLCA;
+
+typedef struct LOGONREC {
+  char szDB  [17];
+  char szUser[17];
+  char szPwd [17];
+  } LOGONREC;
+
+
+/* ------------------------------------------------------------ */
+/* Main                                                         */
+/* ------------------------------------------------------------ */
+int main (const int iArgs, const char * ppszArgs[])
+{
+  int  iRc;
+  unsigned int uiElapsedTimeMicro(0);
+  db2gDatabasePingStruct pingStr = {0, {0}, 1, 1, 0, 0};;
+
+  strcpy (dbase,"SAMPLE");
+  strcpy (userid,"db2admin");
+  strcpy (passwd,"first");
+
+  EXEC SQL CONNECT TO :dbase USER :userid USING :passwd;
+  if (sqlca.sqlcode) {
+    printf ("CONNECT: %d\n", (int) sqlca.sqlcode);
+    exit (8);
+  }
+  sleep (500);
+/*  pingStr.iDbAliasLength = strlen (dbase);
+  strcpy (pingStr.iDbAlias,dbase);
+*/
+  pingStr.iNumIterations = 1;
+  pingStr.poElapsedTime = (db2Uint32*)&uiElapsedTimeMicro;
+/*
+  pingStr.RequestPacketSz=1;
+  pingStr.ResponsePacketSz=1;
+*/
+
+  iRc = db2gDatabasePing (db2Version900, &pingStr, &sqlca);
+  printf ("db2DatabasePing Return: <%d> in %d us\n", iRc, uiElapsedTimeMicro);
+
+  EXEC SQL CONNECT RESET;
+  if (sqlca.sqlcode != 0) {
+    printf ("CONNECT RESET: %d\n", (int) sqlca.sqlcode);
+    exit (8);
+  }
+  return 0;
+} /* main */
+/* --- eof qmapfull.sqc ------------------------------------- */
+
